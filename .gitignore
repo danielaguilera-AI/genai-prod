@@ -4,9 +4,6 @@
 # Environemnt variables
 .env
 
-# Poetry files
-poetry.lock
-
 # Python cache
 __pycache__/
 *.pyc

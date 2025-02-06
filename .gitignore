@@ -1,6 +1,9 @@
 # Virtual environment
 .venv/
 
+# Environemnt variables
+.env
+
 # Poetry files
 poetry.lock
 

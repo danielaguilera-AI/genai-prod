@@ -1,13 +1,9 @@
-from fastapi import FastAPI, Request, Form, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 import boto3
 import os
 import json
 from dotenv import load_dotenv
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 # Load Environment variables
 load_dotenv(".env", override=True)
@@ -25,12 +21,8 @@ bedrock_client = boto3.client(
     aws_secret_access_key=AWS_SECRET_KEY
 )
 
-@app.get("/", response_class=HTMLResponse)
-async def read_form(request: Request):
-    return templates.TemplateResponse("form.html", {"request": request})
-
-@app.post("/generate/", response_class=HTMLResponse)
-async def generate_text(request: Request, prompt: str = Form(...)):
+@app.get("/generate/", response_class=HTMLResponse)
+async def generate_text(prompt: str) -> str:
     """Calls AWS Bedrock LLM to generate text."""
     try:
         payload = {
@@ -59,7 +51,7 @@ async def generate_text(request: Request, prompt: str = Form(...)):
         else:
             generated_text = "No text generated."
 
-        return templates.TemplateResponse("form.html", {"request": request, "response": generated_text})
+        return generated_text
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

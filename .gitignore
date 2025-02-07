@@ -4,6 +4,14 @@
 # Environemnt variables
 .env
 
+# Terraform
+.terraform.lock.hcl
+.terraform.tfstate.lock.info
+.terraform
+terraform.tfstate
+terraform.tfstate.backup
+node_modules
+
 # Python cache
 __pycache__/
 *.pyc

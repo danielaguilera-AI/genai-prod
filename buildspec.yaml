@@ -1,0 +1,23 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 180294182444.dkr.ecr.us-east-1.amazonaws.com
+      - echo Updating kubeconfig...
+      - aws eks update-kubeconfig --region us-east-1 --name my-eks-cluster
+      - echo "Checking cluster connection..."
+      - kubectl get nodes || (echo "EKS connection failed!" && exit 1)
+  build:
+    commands:
+      - echo Deploying FastAPI to Kubernetes...
+      - kubectl apply -f deployment.yaml || (echo "Deployment failed!" && exit 1)
+      - echo "Waiting for pods to be ready..."
+      - kubectl rollout status deployment fastapi-app
+  post_build:
+    commands:
+      - echo Deployment completed successfully!

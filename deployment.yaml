@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-app
+spec:
+  replicas: 2  # Ensure High Availability
+  selector:
+    matchLabels:
+      app: fastapi
+  template:
+    metadata:
+      labels:
+        app: fastapi
+    spec:
+      serviceAccountName: default  # Ensure IAM permissions are applied
+      imagePullSecrets:
+        - name: ecr-secret  # ✅ Ensure Kubernetes can pull from private ECR
+      containers:
+        - name: fastapi
+          image: 180294182444.dkr.ecr.us-east-1.amazonaws.com/data-science/llm-deployment:latest  # ✅ Updated ECR repo
+          ports:
+            - containerPort: 8000
+          env:
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: AWS_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: aws_access_key
+            - name: AWS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: aws_secret_key
+          imagePullPolicy: Always  # ✅ Always pull latest image
+      restartPolicy: Always  # ✅ Ensure pods restart if they fail
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-service
+spec:
+  type: NodePort  # ✅ Use `NodePort` for easier debugging (change to `ClusterIP` in production)
+  selector:
+    app: fastapi
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+      nodePort: 30007  # ✅ Exposes service on a fixed port (for debugging, optional)
+
+

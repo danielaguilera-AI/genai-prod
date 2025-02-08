@@ -31,9 +31,15 @@ resource "aws_codebuild_project" "eks_deploy" {
 
   environment {
     compute_type    = "BUILD_GENERAL1_SMALL"
-    image           = "aws/codebuild/standard:7.0"  # ✅ Uses an AWS-managed image with Python 3.11
+    image           = "aws/codebuild/standard:7.0"  # ✅ Uses AWS Standard Image with Python 3.11
     type            = "LINUX_CONTAINER"
     privileged_mode = true
+  }
+
+  vpc_config {  # ✅ Attach CodeBuild to the EKS VPC
+    vpc_id             = module.vpc.vpc_id
+    subnets            = module.vpc.private_subnets
+    security_group_ids = [aws_security_group.codebuild_sg.id]  # ✅ Create a new security group for CodeBuild
   }
 }
 

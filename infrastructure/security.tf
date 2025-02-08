@@ -80,3 +80,33 @@ output "eks_node_security_group_id" {
   value       = aws_security_group.eks_nodes.id
 }
 
+resource "aws_security_group" "codebuild_sg" {
+  name        = "codebuild-sg"
+  description = "Allow CodeBuild to communicate with EKS"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    description = "Allow outbound requests to EKS API"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    security_groups = [aws_security_group.eks_nodes.id]  # ✅ Allow access to EKS security group
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "codebuild-sg"
+  }
+}
+
+output "codebuild_security_group_id" {
+  description = "Security Group ID for CodeBuild"
+  value       = aws_security_group.codebuild_sg.id
+}

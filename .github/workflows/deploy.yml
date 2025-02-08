@@ -1,4 +1,4 @@
-name: Build, Push Docker Image to ECR, and Deploy Infrastructure
+name: Build, Push Docker Image to ECR, and Deploy via CodeBuild
 
 on:
   push:
@@ -31,4 +31,9 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Trigger AWS CodeBuild to Deploy FastAPI to EKS
+        run: |
+          aws codebuild start-build --project-name eks-deploy
+
 

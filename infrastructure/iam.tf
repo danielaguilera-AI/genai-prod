@@ -56,6 +56,29 @@ resource "aws_iam_role_policy_attachment" "eks_ecr_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
+# Attach Github Policy for CodeBuild
+resource "aws_iam_role" "codebuild_role" {
+  name = "eks-deploy-codebuild-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "codebuild.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "codebuild_policy" {
+  role       = aws_iam_role.codebuild_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+}
+
 # Outputs for IAM Roles
 output "eks_cluster_role_arn" {
   description = "IAM Role ARN for EKS Cluster"

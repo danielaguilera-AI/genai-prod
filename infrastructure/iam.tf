@@ -79,6 +79,34 @@ resource "aws_iam_role_policy_attachment" "codebuild_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
 
+# IAM Role for GitHub Actions User (Allow CodeBuild)
+resource "aws_iam_policy" "github_actions_codebuild_policy" {
+  name        = "GitHubActionsCodeBuildPolicy"
+  description = "Policy to allow GitHub Actions to start CodeBuild builds"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "codebuild:StartBuild",
+          "codebuild:BatchGetBuilds",
+          "codebuild:ListBuilds",
+          "codebuild:StopBuild",
+          "codebuild:GetBuild"
+        ],
+        Resource = "arn:aws:codebuild:us-east-1:180294182444:project/eks-deploy"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_user_policy_attachment" "github_actions_codebuild" {
+  user       = "ecr-github-actions-user"
+  policy_arn = aws_iam_policy.github_actions_codebuild_policy.arn
+}
+
 # Outputs for IAM Roles
 output "eks_cluster_role_arn" {
   description = "IAM Role ARN for EKS Cluster"

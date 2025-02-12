@@ -112,3 +112,128 @@ resource "aws_iam_policy_attachment" "attach_ecs_update_policy" {
   policy_arn = aws_iam_policy.ecs_update_policy.arn
   users      = ["ecr-github-actions-user"]  # Replace with your actual IAM user
 }
+
+# ============================================================
+# ✅ 1️⃣ CREATE API GATEWAY IAM ROLE (WITH FULL TRUST POLICY)
+# ============================================================
+
+resource "aws_iam_role" "api_gateway_role" {
+  name = "APIGatewayToALBRole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "apigateway.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+# ============================================================
+# ✅ 2️⃣ POLICY: API GATEWAY CAN ACCESS ALB
+# ============================================================
+
+resource "aws_iam_policy" "api_gateway_to_alb_policy" {
+  name        = "APIGatewayToALBPolicy"
+  description = "Allows API Gateway to interact with ALB"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "elasticloadbalancing:DescribeLoadBalancers",
+          "elasticloadbalancing:DescribeTargetGroups",
+          "elasticloadbalancing:DescribeListeners",
+          "elasticloadbalancing:DescribeRules",
+          "elasticloadbalancing:RegisterTargets",
+          "elasticloadbalancing:DeregisterTargets"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# ============================================================
+# ✅ 3️⃣ POLICY: API GATEWAY CAN EXECUTE REQUESTS
+# ============================================================
+
+resource "aws_iam_policy" "api_gateway_execution_policy" {
+  name        = "APIGatewayExecutionPolicy"
+  description = "Allows API Gateway to execute API requests"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "execute-api:Invoke",
+          "execute-api:ManageConnections"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# ============================================================
+# ✅ 4️⃣ POLICY: API GATEWAY CAN WRITE LOGS TO CLOUDWATCH
+# ============================================================
+
+resource "aws_iam_policy" "api_gateway_logging_policy" {
+  name        = "APIGatewayLoggingPolicy"
+  description = "Allows API Gateway to send logs to CloudWatch"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:DescribeLogGroups",
+          "logs:DescribeLogStreams",
+          "logs:PutLogEvents"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# ============================================================
+# ✅ 5️⃣ ATTACH POLICIES TO API GATEWAY ROLE
+# ============================================================
+
+resource "aws_iam_role_policy_attachment" "attach_api_gateway_alb_policy" {
+  role       = aws_iam_role.api_gateway_role.name
+  policy_arn = aws_iam_policy.api_gateway_to_alb_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "attach_api_gateway_execution_policy" {
+  role       = aws_iam_role.api_gateway_role.name
+  policy_arn = aws_iam_policy.api_gateway_execution_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "attach_api_gateway_logging_policy" {
+  role       = aws_iam_role.api_gateway_role.name
+  policy_arn = aws_iam_policy.api_gateway_logging_policy.arn
+}
+
+# ============================================================
+# ✅ 6️⃣ ASSIGN THE IAM ROLE TO API GATEWAY ACCOUNT
+# ============================================================
+
+resource "aws_api_gateway_account" "api_gw_account" {
+  cloudwatch_role_arn = aws_iam_role.api_gateway_role.arn
+}
+

@@ -21,6 +21,11 @@ bedrock_client = boto3.client(
     aws_secret_access_key=AWS_SECRET_KEY
 )
 
+@app.get("/ping")
+async def ping():
+    return {"status": "ok"}
+
+
 @app.get("/generate/", response_class=HTMLResponse)
 async def generate_text(prompt: str) -> str:
     """Calls AWS Bedrock LLM to generate text."""

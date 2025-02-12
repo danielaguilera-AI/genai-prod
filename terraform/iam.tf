@@ -85,3 +85,30 @@ resource "aws_iam_role_policy_attachment" "ecs_task_bedrock" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.bedrock_access_policy.arn
 }
+
+resource "aws_iam_policy" "ecs_update_policy" {
+  name        = "GitHubActionsECSUpdatePolicy"
+  description = "Allows GitHub Actions to update ECS services"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = [
+          "ecs:UpdateService",
+          "ecs:DescribeServices",
+          "ecs:ListServices",
+          "ecs:ListClusters"
+        ]
+        Resource = "arn:aws:ecs:us-east-1:180294182444:service/llm-cluster/llm-service"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy_attachment" "attach_ecs_update_policy" {
+  name       = "GitHubActionsECSUpdateAttachment"
+  policy_arn = aws_iam_policy.ecs_update_policy.arn
+  users      = ["ecr-github-actions-user"]  # Replace with your actual IAM user
+}

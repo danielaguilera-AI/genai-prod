@@ -32,4 +32,14 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
+      - name: Update ECS Service
+        env:
+          AWS_REGION: us-east-1
+          CLUSTER_NAME: llm-cluster
+          SERVICE_NAME: llm-service
+          CONTAINER_NAME: fastapi-container
+          ECR_IMAGE: 180294182444.dkr.ecr.us-east-1.amazonaws.com/data-science/llm-deployment:latest
+        run: |
+          aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --force-new-deployment
+
 

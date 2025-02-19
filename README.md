@@ -4,76 +4,127 @@
 
 ## Table of Contents
 
-- [Installation](#installation)
-  - [Installing Python with pyenv](#installing-python-with-pyenv)
-  - [Installing Poetry](#installing-poetry)
-  - [Installing Project Dependencies](#installing-project-dependencies)
-  - [Installing Terraform](#installing-terraform)
-- [Usage](#usage)
-  - [Running the Gradio Application](#running-the-gradio-application)
-  - [Deploying Infrastructure with Terraform](#deploying-infrastructure-with-terraform)
-- [Project Structure](#project-structure)
-- [Contributing](#contributing)
-- [License](#license)
-- [Acknowledgments](#acknowledgments)
+1. [Installation on Windows](#installation-on-windows)
+   - [Installing Chocolatey](#installing-chocolatey)
+   - [Installing Python with pyenv-win](#installing-python-with-pyenv-win)
+   - [Installing Poetry](#installing-poetry)
+   - [Installing Project Dependencies](#installing-project-dependencies)
+   - [Installing AWS CLI](#installing-aws-cli)
+   - [Installing Terraform](#installing-terraform)
+2. [Usage](#usage)
+   - [Deploying Infrastructure with Terraform](#deploying-infrastructure-with-terraform)
+   - [Running the Gradio Application](#running-the-gradio-application)
 
-## Installation
+## 1. Installation on Windows
 
-### Installing Python with pyenv
+### 1.1. Installing Chocolatey
+Chocolatey is a package manager for Windows that simplifies software installation.
 
-To ensure compatibility, it's recommended to use the Python version specified in the `.python-version` file. `pyenv` simplifies the process of managing multiple Python versions.
+1. **Open PowerShell as Administrator** and run:
+   ```powershell
+   Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+   ```
+2. **Verify Chocolatey installation**:
+   ```powershell
+   choco --version
+   ```
 
-1. **Install pyenv**:
+### 1.2. Installing Python with pyenv-win
+To manage multiple Python versions on Windows, `pyenv-win` is a reliable tool.
 
-   - **macOS**:
+1. **Install pyenv-win**:
+   ```powershell
+   Invoke-WebRequest -UseBasicParsing -Uri "https://raw.githubusercontent.com/pyenv-win/pyenv-win/master/pyenv-win/install-pyenv-win.ps1" -OutFile "$HOME\install-pyenv-win.ps1"; & "$HOME\install-pyenv-win.ps1"
+   ```
 
-     Install Homebrew if it's not already installed:
+2. **Install a specific Python version**:
+   ```powershell
+   pyenv install 3.10.11
+   pyenv global 3.10.11
+   pyenv local 3.10.11
+   ```
 
-     ```bash
-     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-     ```
+### 1.3. Installing Poetry
+Poetry is a Python tool for dependency management and packaging, enabling you to declare and manage libraries your project depends on, handling installation and updates automatically.
 
-     Then, install pyenv:
+```powershell
+Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing | python -
+```
 
-     ```bash
-     brew update
-     brew install pyenv
-     ```
+After installation, add Poetry to your system's PATH by executing:
+```powershell
+$env:Path += ";$env:USERPROFILE\.poetry\bin"
+```
 
-   - **Ubuntu**:
+Verify the installation:
+```powershell
+poetry --version
+```
 
-     Update system packages and install dependencies:
+### 1.4. Installing Project Dependencies
+Once Poetry is installed, navigate to the project's root directory and execute:
+```powershell
+poetry install
+```
+This command will create a virtual environment and install all necessary dependencies as specified in the `pyproject.toml` file.
 
-     ```bash
-     sudo apt update
-     sudo apt install -y make build-essential libssl-dev zlib1g-dev \
-     libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
-     libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev \
-     liblzma-dev python-openssl git
-     ```
+### 1.5. Installing AWS CLI
+AWS CLI is needed to interact with AWS services from the command line.
 
-     Install pyenv:
+**Install AWS CLI using Chocolatey:**
+```powershell
+choco install awscli -y
+```
 
-     ```bash
-     curl https://pyenv.run | bash
-     ```
+**Configure AWS Credentials:**
+```powershell
+aws configure
+```
+You will be prompted to enter:
+1. AWS Access Key ID
+2. AWS Secret Access Key
+3. Default region name (e.g., us-east-1)
+4. Default output format (json, text, or table)
 
-     Add pyenv to your shell:
+**Verify installation:**
+```powershell
+aws --version
+```
 
-     ```bash
-     echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
-     echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
-     echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n eval "$(pyenv init --path)"\nfi' >> ~/.bashrc
-     source ~/.bashrc
-     ```
+### 1.6. Installing Terraform
+Terraform is an open-source infrastructure as code tool developed by HashiCorp that enables users to define and provision data center infrastructure using a declarative configuration language.
 
-   - **Windows**:
+**Install Terraform using Chocolatey:**
+```powershell
+choco install terraform -y
+```
 
-     Install `pyenv` using `pyenv-win`. Follow the instructions in the [pyenv-win GitHub repository](https://github.com/pyenv-win/pyenv-win).
+**Verify the installation:**
+```powershell
+terraform -v
+```
 
-2. **Install the required Python version**:
+## 2. Usage
 
-   Navigate to the project directory and run:
+### 2.1. Deploying Infrastructure with Terraform
+To deploy the infrastructure, navigate to the Terraform directory and execute:
 
-   ```bash
-   pyenv install $(cat .python-version)
+```powershell
+terraform init
+terraform apply -auto-approve
+```
+
+### 2.2. Running the Gradio Application
+To start the Gradio UI locally, run:
+
+```powershell
+poetry run python app.py
+```
+
+The application will be accessible via the displayed local URL.
+
+
+
+
+
+

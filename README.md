@@ -104,13 +104,26 @@ choco install terraform -y
 terraform -v
 ```
 
-## 2. Usage
+## 2. GitHub Secrets Configuration
+
+If a new project is created, ensure the following secrets are set in the GitHub repository under **Settings > Secrets and variables > Actions**:
+
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_REGION`
+- `AWS_ACCOUNT_ID`
+
+These secrets are needed for running GitHub actions (CI/CD)
+
+## 3. Usage
 
 ### 2.1. Deploying Infrastructure with Terraform
 To deploy the infrastructure, navigate to the Terraform directory and execute:
 
 ```powershell
+cd terraform
 terraform init
+terraform plan
 terraform apply -auto-approve
 ```
 
@@ -118,10 +131,12 @@ terraform apply -auto-approve
 To start the Gradio UI locally, run:
 
 ```powershell
-poetry run python app.py
+poetry run python app_gradio.py
 ```
 
 The application will be accessible via the displayed local URL.
+
+
 
 
 

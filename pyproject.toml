@@ -4,9 +4,10 @@ version = "0.1.0"
 description = ""
 authors = ["Daniel Aguilera"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
-python = ">=3.11"
+python = ">=3.10,<4.0"
 boto3 = "^1.36.14"
 fastapi = "^0.115.8"
 uvicorn = "^0.34.0"
@@ -14,9 +15,13 @@ python-dotenv = "^1.0.1"
 jinja2 = "^3.1.5"
 python-multipart = "^0.0.20"
 awscli = "^1.37.16"
-streamlit = "^1.42.0"
+langgraph = "^0.2.72"
+langchain = "^0.3.19"
+langchain-community = "^0.3.17"
+gradio = "^5.16.1"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
 

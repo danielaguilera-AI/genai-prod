@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from botocore.exceptions import NoCredentialsError
 from fastapi.responses import HTMLResponse
 import boto3
 import os
@@ -19,6 +20,13 @@ bedrock_client = boto3.client(
     region_name=AWS_REGION,
     aws_access_key_id=AWS_ACCESS_KEY,
     aws_secret_access_key=AWS_SECRET_KEY
+)
+
+s3_client = boto3.client(
+    "s3",
+    aws_access_key_id=AWS_ACCESS_KEY,
+    aws_secret_access_key=AWS_SECRET_KEY,
+    region_name=AWS_REGION
 )
 
 @app.get("/ping")

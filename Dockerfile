@@ -1,5 +1,5 @@
 # Use official Python image
-FROM python:3.11-slim
+FROM python:3.10-slim
 
 # Set environment variables for Poetry
 ENV POETRY_VERSION=1.6.1 \

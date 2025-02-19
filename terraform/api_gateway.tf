@@ -1,3 +1,9 @@
+# Retrieve the existing load balancer's DNS name
+data "aws_lb" "ecs_alb" {
+  name = "ecs-alb"  # Change this to your ALB name
+  depends_on = [aws_lb.ecs_alb]
+}
+
 resource "aws_api_gateway_rest_api" "fastapi_api" {
   name        = "fastapi-api"
   description = "REST API for FastAPI backend"
@@ -17,12 +23,13 @@ resource "aws_api_gateway_method" "proxy_method" {
 }
 
 resource "aws_api_gateway_integration" "fastapi_integration" {
-  rest_api_id          = aws_api_gateway_rest_api.fastapi_api.id
-  resource_id          = aws_api_gateway_resource.proxy.id
-  http_method          = aws_api_gateway_method.proxy_method.http_method
-  integration_http_method = "ANY" # Required for REST API
-  type                 = "HTTP_PROXY"
-  uri                  = "http://ecs-alb-830296603.us-east-1.elb.amazonaws.com/generate/"
+  rest_api_id             = aws_api_gateway_rest_api.fastapi_api.id
+  resource_id             = aws_api_gateway_resource.proxy.id
+  http_method             = aws_api_gateway_method.proxy_method.http_method
+  integration_http_method = "ANY"  # Required for REST API
+  type                    = "HTTP_PROXY"
+  uri                     = "http://${data.aws_lb.ecs_alb.dns_name}/generate/"
+  depends_on = [aws_lb.ecs_alb]
 }
 
 resource "aws_api_gateway_deployment" "fastapi_deployment" {
@@ -39,4 +46,5 @@ resource "aws_api_gateway_stage" "fastapi_stage" {
 output "api_gateway_url" {
   value = aws_api_gateway_stage.fastapi_stage.invoke_url
 }
+
 

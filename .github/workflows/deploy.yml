@@ -37,7 +37,9 @@ jobs:
         working-directory: ./terraform
         run: |
           echo "🔍 Retrieving ECR URL from Terraform output..."
-          ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null | grep -Eo '([a-zA-Z0-9]+\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/[a-zA-Z0-9_-]+)')
+          
+          # Extract a single valid ECR URL
+          ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null | grep -Eo '([a-zA-Z0-9]+\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/[a-zA-Z0-9_-]+)' | head -n 1 | tr -d '[:space:]')
           
           # Debug Output
           echo "📌 DEBUG: Extracted ECR URL is '$ECR_URL'"

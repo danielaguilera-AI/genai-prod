@@ -7,8 +7,6 @@ on:
 jobs:
   terraform-apply:
     runs-on: ubuntu-latest
-    outputs:
-      ecr_url: ${{ steps.get-ecr-url.outputs.ecr_url }}
 
     steps:
       - name: Checkout Code
@@ -45,8 +43,13 @@ jobs:
 
           echo "✅ Extracted ECR URL: $ECR_URL"
           
-          echo "ecr_url=$ECR_URL" >> $GITHUB_ENV
-          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
+          echo "$ECR_URL" > ecr_url.txt
+
+      - name: Save ECR URL Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ecr-url
+          path: ecr_url.txt
 
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -63,12 +66,17 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Download ECR URL Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ecr-url
+
+      - name: Read ECR URL
+        run: echo "ECR_REGISTRY=$(cat ecr_url.txt)" >> $GITHUB_ENV
+
       - name: Log in to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-
-      - name: Set ECR Registry Variable
-        run: echo "ECR_REGISTRY=${{ needs.terraform-apply.outputs.ecr_url }}" >> $GITHUB_ENV
 
       - name: Debug ECR URL
         run: |
@@ -83,4 +91,5 @@ jobs:
         run: |
           docker build -t "$ECR_REGISTRY:latest" .
           docker push "$ECR_REGISTRY:latest"
+
 

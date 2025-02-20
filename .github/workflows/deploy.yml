@@ -42,9 +42,24 @@ jobs:
         id: get-ecr-url
         working-directory: ./terraform
         run: |
-          ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null)
-          echo "Extracted ECR URL: $ECR_URL"  # Debugging print
-          echo "ecr_url=$ECR_URL" >> "$GITHUB_OUTPUT"  # ✅ Correct way to set output
+          echo "🔍 Running Terraform Output Command..."
+          terraform output -raw ecr_repository_url || echo "⚠️ Terraform output command failed!"
+
+          # Capture Terraform Output
+          ECR_URL=$(terraform output -raw ecr_repository_url)
+
+          # Debugging: Print Retrieved Value
+          echo "Extracted ECR URL: $ECR_URL"
+
+          # Ensure Non-Empty Output
+          if [[ -z "$ECR_URL" ]]; then
+            echo "❌ ERROR: ECR_URL is empty! Terraform output might be incorrect."
+            exit 1
+          fi
+
+          # Store Output for Next Steps
+          echo "ecr_url=$ECR_URL" >> "$GITHUB_OUTPUT"
+  
 
   build-and-deploy:
     runs-on: ubuntu-latest

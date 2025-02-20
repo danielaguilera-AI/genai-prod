@@ -8,7 +8,7 @@ jobs:
   terraform-apply:
     runs-on: ubuntu-latest
     outputs:
-      ecr_url: ${{ steps.get-ecr-url.outputs.ecr_url }}  # ✅ Correctly defining job output
+      ecr_url: ${{ steps.get-ecr-url.outputs.ecr_url }}  # ✅ Correct job output
 
     steps:
       - name: Checkout Code
@@ -39,19 +39,23 @@ jobs:
           terraform output
 
       - name: Get ECR Repository URL
-        id: get-ecr-url  # ✅ Step ID that defines the output
+        id: get-ecr-url  # ✅ Step ID for outputs
         working-directory: ./terraform
         run: |
+          # Retrieve the ECR URL from Terraform
           ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null | tr -d '[:space:]')
 
+          # Debugging: Show retrieved value
+          echo "✅ Extracted ECR URL: $ECR_URL"
+
+          # Prevent empty values from being passed
           if [[ -z "$ECR_URL" ]]; then
             echo "❌ ERROR: ECR_URL is empty! Terraform might have failed."
             exit 1
           fi
 
-          echo "✅ Extracted ECR URL: $ECR_URL"
-          
-          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT  # ✅ Correctly setting job output
+          # ✅ Correctly set job output
+          echo "ecr_url=$ECR_URL" >> "$GITHUB_OUTPUT"
 
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -62,9 +66,22 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Debug Passed Output
+        env:
+          ECR_URL: ${{ needs.terraform-apply.outputs.ecr_url }}
         run: |
           echo "🛠️ Checking Passed Output from terraform-apply..."
-          echo "ECR_URL received: '${{ needs.terraform-apply.outputs.ecr_url }}'"
+          echo "ECR_URL received: '$ECR_URL'"
+
+      - name: Ensure Output is Passed Correctly
+        env:
+          ECR_URL: ${{ needs.terraform-apply.outputs.ecr_url }}
+        run: |
+          if [[ -z "$ECR_URL" ]]; then
+            echo "❌ ERROR: Output 'ecr_url' is EMPTY!"
+            exit 1
+          else
+            echo "✅ ECR URL Passed Successfully: $ECR_URL"
+          fi
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -74,7 +91,11 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Set ECR Registry Variable
-        run: echo "ECR_REGISTRY=${{ needs.terraform-apply.outputs.ecr_url }}" >> $GITHUB_ENV
+        env:
+          ECR_URL: ${{ needs.terraform-apply.outputs.ecr_url }}
+        run: |
+          echo "ECR_REGISTRY=$ECR_URL" >> $GITHUB_ENV
+          echo "✅ Set ECR_REGISTRY: $ECR_REGISTRY"
 
       - name: Log in to Amazon ECR
         id: login-ecr

@@ -36,8 +36,14 @@ jobs:
         id: get-ecr-url
         working-directory: ./terraform
         run: |
-          echo "ecr_url=$(terraform output -raw ecr_repository_url 2>/dev/null | tr -d '\r' | tr -d '\n')" >> $GITHUB_ENV
-          echo "::set-output name=ecr_url::$(terraform output -raw ecr_repository_url 2>/dev/null | tr -d '\r' | tr -d '\n')"
+          ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null | tr -d '\r' | tr -d '\n')
+          echo "ECR_URL=$ECR_URL"
+          if [[ -z "$ECR_URL" ]]; then
+            echo "❌ Error: Terraform did not output ECR URL. Check Terraform logs!"
+            exit 1
+          fi
+          echo "::set-output name=ecr_url::$ECR_URL"
+          echo "ECR_URL=$ECR_URL" >> $GITHUB_ENV
 
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -65,7 +71,7 @@ jobs:
         run: |
           echo "ECR_REGISTRY=$ECR_REGISTRY"
           if [[ -z "$ECR_REGISTRY" ]]; then
-            echo "Error: ECR_REGISTRY is empty. Terraform might have failed."
+            echo "❌ Error: ECR_REGISTRY is empty. Terraform might have failed."
             exit 1
           fi
           docker build -t $ECR_REGISTRY:$IMAGE_TAG .
@@ -80,6 +86,7 @@ jobs:
           ECR_IMAGE: ${{ needs.terraform-apply.outputs.ecr_url }}:latest
         run: |
           aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --force-new-deployment
+
 
 
 

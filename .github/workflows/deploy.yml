@@ -1,27 +1,42 @@
-name: Deploy ECR
+name: Terraform Apply, Build & Push to ECR, Deploy to ECS
 
 on:
   push:
-    branches:
-      - main  # Change to your branch if needed
+    branches: [ main ]
 
 jobs:
-  first_job:
+  terraform-apply:
     runs-on: ubuntu-latest
     outputs:
-      ecr_url: ${{ steps.get-ecr-url.outputs.ecr_url }}  # Correctly referencing step output
+      ecr_url: ${{ steps.get-ecr-url.outputs.ecr_url }}  # ✅ Correct job output
+
     steps:
-      - name: Set up Terraform
-        run: |
-          sudo apt-get update && sudo apt-get install -y unzip
-          curl -fsSL https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip -o terraform.zip
-          unzip terraform.zip
-          sudo mv terraform /usr/local/bin/
-          terraform --version  # Verify Terraform is installed
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
       - name: Initialize Terraform
         working-directory: ./terraform
         run: terraform init
+
+      - name: Apply Terraform
+        working-directory: ./terraform
+        run: terraform apply -auto-approve
+
+      - name: Debug Terraform Output
+        working-directory: ./terraform
+        run: |
+          echo "🔍 Terraform Output:"
+          terraform output
 
       - name: Get ECR Repository URL
         id: get-ecr-url
@@ -29,4 +44,42 @@ jobs:
         run: |
           ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null)
           echo "Extracted ECR URL: $ECR_URL"  # Debugging print
-          echo "ecr_url=$ECR_URL" >> "$GITHUB_OUTPUT"  # Correctly set job output
+          echo "ecr_url=$ECR_URL" >> "$GITHUB_OUTPUT"  # ✅ Correct way to set output
+
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    needs: [terraform-apply]
+    env:
+      ECR_URL: ${{ needs.terraform-apply.outputs.ecr_url }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Debug Retrieved ECR URL
+        run: |
+          echo "✅ Retrieved ECR URL: $ECR_URL"
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, Tag, and Push Docker Image
+        run: |
+          echo "🚀 Building and pushing to: $ECR_URL"
+          docker build -t "$ECR_URL:latest" .
+          docker push "$ECR_URL:latest"
+
+
+
+
+
+
+

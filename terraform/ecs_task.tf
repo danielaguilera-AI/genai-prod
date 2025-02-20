@@ -2,7 +2,6 @@
 # ECS TASK DEFINITION (FARGATE)
 # ============================================================
 # Launch Docker containers on AWS = Launch ECS Tasks on ECS Clusters
-
 resource "aws_ecs_task_definition" "llm_task" {
   family                   = "llm-task"
   cpu                      = "512"  # 0.5 vCPU
@@ -15,7 +14,7 @@ resource "aws_ecs_task_definition" "llm_task" {
   container_definitions = jsonencode([
     {
       name      = "fastapi-container"
-      image     = "180294182444.dkr.ecr.us-east-1.amazonaws.com/data-science/llm-deployment:latest"
+      image     = "${aws_ecr_repository.llm_repository.repository_url}:latest"  # Dynamically retrieve ECR URL
       cpu       = 512
       memory    = 1024
       essential = true
@@ -44,10 +43,10 @@ resource "aws_ecs_task_definition" "llm_task" {
   ])
 }
 
+
 # ============================================================
 # CLOUDWATCH LOG GROUP (FOR LOGGING CONTAINER OUTPUTS)
 # ============================================================
-
 resource "aws_cloudwatch_log_group" "ecs_log_group" {
   name              = "/ecs/llm-task"
   retention_in_days = 7

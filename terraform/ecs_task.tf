@@ -1,20 +1,16 @@
-# ============================================================
-# ECS TASK DEFINITION (FARGATE)
-# ============================================================
-# Launch Docker containers on AWS = Launch ECS Tasks on ECS Clusters
 resource "aws_ecs_task_definition" "llm_task" {
   family                   = "llm-task"
-  cpu                      = "512"  # 0.5 vCPU
-  memory                   = "1024" # 1 GB RAM
-  network_mode             = "awsvpc"  # Required for Fargate
-  requires_compatibilities = ["FARGATE"]  # Run in Fargate
+  cpu                      = "512"
+  memory                   = "1024"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
   task_role_arn            = aws_iam_role.ecs_task_role.arn
 
   container_definitions = jsonencode([
     {
       name      = "fastapi-container"
-      image     = "${aws_ecr_repository.llm_repository[0].repository_url}:latest"
+      image     = "${aws_ecr_repository.llm_repository.repository_url}:latest"
       cpu       = 512
       memory    = 1024
       essential = true
@@ -42,6 +38,7 @@ resource "aws_ecs_task_definition" "llm_task" {
     }
   ])
 }
+
 
 
 # ============================================================

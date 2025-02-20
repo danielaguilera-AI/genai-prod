@@ -1,28 +1,32 @@
-name: Example Workflow
-on: push
+name: Deploy ECR
+
+on:
+  push:
+    branches:
+      - main  # Change to your branch if needed
 
 jobs:
   first_job:
     runs-on: ubuntu-latest
     outputs:
-      ecr_url: ${{ steps.get-ecr-url.outputs.ecr_url }}  # Define job-level output
+      ecr_url: ${{ steps.get-ecr-url.outputs.ecr_url }}  # Correctly referencing step output
     steps:
+      - name: Set up Terraform
+        run: |
+          sudo apt-get update && sudo apt-get install -y unzip
+          curl -fsSL https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip -o terraform.zip
+          unzip terraform.zip
+          sudo mv terraform /usr/local/bin/
+          terraform --version  # Verify Terraform is installed
+
+      - name: Initialize Terraform
+        working-directory: ./terraform
+        run: terraform init
+
       - name: Get ECR Repository URL
         id: get-ecr-url
+        working-directory: ./terraform
         run: |
-          echo "ecr_url=$(terraform output -raw ecr_repository_url 2>/dev/null | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
-
-  second_job:
-    needs: first_job  # Depend on first_job
-    runs-on: ubuntu-latest
-    steps:
-      - name: Use ECR URL from First Job
-        run: echo "ECR URL is ${{ needs.first_job.outputs.ecr_url }}"
-
-
-
-
-
-
-
-
+          ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null)
+          echo "Extracted ECR URL: $ECR_URL"  # Debugging print
+          echo "ecr_url=$ECR_URL" >> "$GITHUB_OUTPUT"  # Correctly set job output

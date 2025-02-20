@@ -26,8 +26,11 @@ jobs:
 
       - name: Initialize Terraform
         working-directory: ./terraform
-        run: terraform destroy
+        run: terraform init
 
+      - name: Apply Terraform
+        working-directory: ./terraform
+        run: terraform destroy
 
   build-and-deploy:
     runs-on: ubuntu-latest

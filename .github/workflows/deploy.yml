@@ -33,9 +33,10 @@ jobs:
         run: terraform apply -auto-approve
 
       - name: Get ECR Repository URL
-        id: terraform-output
-        working-directory: ./terraform
-        run: echo "ecr_url=$(terraform output -raw ecr_repository_url)" >> $GITHUB_ENV
+        id: get-ecr-url
+        run: |
+          ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null | tr -d '\r' | tr -d '\n')
+          echo "ECR_URL=$ECR_URL" >> $GITHUB_ENV
 
   build-and-deploy:
     runs-on: ubuntu-latest

@@ -7,8 +7,6 @@ on:
 jobs:
   terraform-apply:
     runs-on: ubuntu-latest
-    outputs:
-      ecr_url: ${{ steps.get-ecr-url.outputs.ecr_url }}  # ✅ Correct job output
 
     steps:
       - name: Checkout Code
@@ -38,34 +36,9 @@ jobs:
           echo "🔍 Terraform Output:"
           terraform output
 
-      - name: Get ECR Repository URL
-        id: get-ecr-url
-        working-directory: ./terraform
-        run: |
-          echo "🔍 Running Terraform Output Command..."
-          terraform output -raw ecr_repository_url || echo "⚠️ Terraform output command failed!"
-
-          # Capture Terraform Output
-          ECR_URL=$(terraform output -raw ecr_repository_url)
-
-          # Debugging: Print Retrieved Value
-          echo "Extracted ECR URL: $ECR_URL"
-
-          # Ensure Non-Empty Output
-          if [[ -z "$ECR_URL" ]]; then
-            echo "❌ ERROR: ECR_URL is empty! Terraform output might be incorrect."
-            exit 1
-          fi
-
-          # Store Output for Next Steps
-          echo "ecr_url=$ECR_URL" >> "$GITHUB_OUTPUT"
-  
-
   build-and-deploy:
     runs-on: ubuntu-latest
     needs: [terraform-apply]
-    env:
-      ECR_URL: ${{ needs.terraform-apply.outputs.ecr_url }}
 
     steps:
       - name: Checkout Code
@@ -78,9 +51,26 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Get ECR Repository URL Directly
+        id: get-ecr-url
+        working-directory: ./terraform
+        run: |
+          echo "🔍 Running Terraform Output Command..."
+          terraform output -raw ecr_repository_url || echo "⚠️ Terraform output command failed!"
+
+          ECR_URL=$(terraform output -raw ecr_repository_url)
+          echo "Extracted ECR URL: $ECR_URL"
+
+          if [[ -z "$ECR_URL" ]]; then
+            echo "❌ ERROR: ECR_URL is empty! Terraform output might be incorrect."
+            exit 1
+          fi
+
+          echo "ECR_URL=$ECR_URL" >> "$GITHUB_ENV"
+
       - name: Debug Retrieved ECR URL
         run: |
-          echo "✅ Retrieved ECR URL: $ECR_URL"
+          echo "✅ Retrieved ECR URL: '${{ env.ECR_URL }}'"
 
       - name: Log in to Amazon ECR
         id: login-ecr
@@ -88,13 +78,8 @@ jobs:
 
       - name: Build, Tag, and Push Docker Image
         run: |
-          echo "🚀 Building and pushing to: $ECR_URL"
-          docker build -t "$ECR_URL:latest" .
-          docker push "$ECR_URL:latest"
-
-
-
-
-
+          echo "🚀 Building and pushing to: ${{ env.ECR_URL }}"
+          docker build -t "${{ env.ECR_URL }}:latest" .
+          docker push "${{ env.ECR_URL }}:latest"
 
 

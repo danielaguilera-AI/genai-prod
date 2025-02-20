@@ -45,8 +45,7 @@ jobs:
 
           echo "✅ Extracted ECR URL: $ECR_URL"
           
-          echo "ecr_url=$ECR_URL" >> $GITHUB_ENV
-          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
+          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT  # ✅ Correct way to pass output between jobs
 
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -64,7 +63,7 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Set ECR Registry Variable
-        run: echo "ECR_REGISTRY=${{ env.ecr_url }}" >> $GITHUB_ENV
+        run: echo "ECR_REGISTRY=${{ needs.terraform-apply.outputs.ecr_url }}" >> $GITHUB_ENV
 
       - name: Log in to Amazon ECR
         id: login-ecr
@@ -72,17 +71,18 @@ jobs:
 
       - name: Debug ECR URL
         run: |
-          echo "📌 Using ECR_REGISTRY: ${{ env.ecr_url }}"
+          echo "📌 Using ECR_REGISTRY: $ECR_REGISTRY"
           
-          if [[ -z "${{ env.ecr_url }}" ]]; then
+          if [[ -z "$ECR_REGISTRY" ]]; then
             echo "❌ ERROR: ECR_REGISTRY is empty! Terraform might have failed."
             exit 1
           fi
 
       - name: Build, Tag, and Push Docker Image
         run: |
-          docker build -t "${{ env.ecr_url }}:latest" .
-          docker push "${{ env.ecr_url }}:latest"
+          docker build -t "$ECR_REGISTRY:latest" .
+          docker push "$ECR_REGISTRY:latest"
+
 
 
 

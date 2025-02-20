@@ -8,14 +8,14 @@ jobs:
   terraform-apply:
     runs-on: ubuntu-latest
     outputs:
-      ecr_url: ${{ steps.terraform-output.outputs.ecr_url }}
+      ecr_url: ${{ steps.get-ecr-url.outputs.ecr_url }}
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -34,9 +34,10 @@ jobs:
 
       - name: Get ECR Repository URL
         id: get-ecr-url
+        working-directory: ./terraform
         run: |
-          ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null | tr -d '\r' | tr -d '\n')
-          echo "ECR_URL=$ECR_URL" >> $GITHUB_ENV
+          echo "ecr_url=$(terraform output -raw ecr_repository_url 2>/dev/null | tr -d '\r' | tr -d '\n')" >> $GITHUB_ENV
+          echo "::set-output name=ecr_url::$(terraform output -raw ecr_repository_url 2>/dev/null | tr -d '\r' | tr -d '\n')"
 
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -44,10 +45,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -59,9 +60,14 @@ jobs:
 
       - name: Build, Tag, and Push Docker Image
         env:
-          ECR_REGISTRY: ${{ env.ECR_URL }}
+          ECR_REGISTRY: ${{ needs.terraform-apply.outputs.ecr_url }}
           IMAGE_TAG: latest
         run: |
+          echo "ECR_REGISTRY=$ECR_REGISTRY"
+          if [[ -z "$ECR_REGISTRY" ]]; then
+            echo "Error: ECR_REGISTRY is empty. Terraform might have failed."
+            exit 1
+          fi
           docker build -t $ECR_REGISTRY:$IMAGE_TAG .
           docker push $ECR_REGISTRY:$IMAGE_TAG
 
@@ -71,9 +77,10 @@ jobs:
           CLUSTER_NAME: llm-cluster
           SERVICE_NAME: llm-service
           CONTAINER_NAME: fastapi-container
-          ECR_IMAGE: ${{ env.ECR_URL }}:latest
+          ECR_IMAGE: ${{ needs.terraform-apply.outputs.ecr_url }}:latest
         run: |
           aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --force-new-deployment
+
 
 
 

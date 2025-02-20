@@ -1,4 +1,4 @@
-name: Terraform Apply, Build & Push to ECR, Deploy to ECS
+name: Deploy to AWS
 
 on:
   push:
@@ -7,8 +7,6 @@ on:
 jobs:
   terraform-apply:
     runs-on: ubuntu-latest
-    outputs:
-      ecr_url: ${{ steps.get-ecr-url.outputs.ecr_url }}
 
     steps:
       - name: Checkout Code
@@ -32,10 +30,6 @@ jobs:
         working-directory: ./terraform
         run: terraform apply -auto-approve
 
-      - name: Debug Terraform Output
-        working-directory: ./terraform
-        run: terraform output -raw ecr_repository_url || echo "⚠️ Terraform output is empty!"
-
       - name: Get ECR Repository URL
         id: get-ecr-url
         working-directory: ./terraform
@@ -46,8 +40,8 @@ jobs:
             echo "❌ Error: Terraform did not output ECR URL. Check Terraform logs!"
             exit 1
           fi
-          echo "::set-output name=ecr_url::$ECR_URL"
           echo "ECR_URL=$ECR_URL" >> $GITHUB_ENV
+          echo "ECR_URL=$ECR_URL" >> $GITHUB_OUTPUT
 
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -69,19 +63,21 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Debug Passed ECR URL
-        run: echo "ECR_REGISTRY=${{ needs.terraform-apply.outputs.ecr_url }}"
+        run: |
+          echo "📌 DEBUG: ECR_URL from Terraform: $ECR_URL"
 
       - name: Build, Tag, and Push Docker Image
         env:
-          ECR_REGISTRY: ${{ needs.terraform-apply.outputs.ecr_url }}
+          ECR_URL: ${{ needs.terraform-apply.outputs.get-ecr-url.outputs.ECR_URL }}
           IMAGE_TAG: latest
         run: |
-          if [[ -z "$ECR_REGISTRY" ]]; then
-            echo "❌ Error: ECR_REGISTRY is empty. Terraform might have failed."
+          if [[ -z "$ECR_URL" ]]; then
+            echo "❌ Error: ECR_URL is empty. Terraform might have failed."
             exit 1
           fi
-          docker build -t $ECR_REGISTRY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY:$IMAGE_TAG
+          echo "📌 Building and pushing image to $ECR_URL:$IMAGE_TAG"
+          docker build -t $ECR_URL:$IMAGE_TAG .
+          docker push $ECR_URL:$IMAGE_TAG
 
       - name: Update ECS Service
         env:
@@ -89,9 +85,10 @@ jobs:
           CLUSTER_NAME: llm-cluster
           SERVICE_NAME: llm-service
           CONTAINER_NAME: fastapi-container
-          ECR_IMAGE: ${{ needs.terraform-apply.outputs.ecr_url }}:latest
+          ECR_IMAGE: ${{ needs.terraform-apply.outputs.get-ecr-url.outputs.ECR_URL }}:latest
         run: |
           aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --force-new-deployment
+
 
 
 

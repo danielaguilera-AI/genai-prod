@@ -37,7 +37,7 @@ jobs:
         working-directory: ./terraform
         run: |
           echo "🔍 Retrieving ECR URL from Terraform output..."
-          ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null | tr -d '\r' | tr -d '\n')
+          ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null | grep -Eo '([a-zA-Z0-9]+\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/[a-zA-Z0-9_-]+)')
           
           # Debug Output
           echo "📌 DEBUG: Extracted ECR URL is '$ECR_URL'"
@@ -90,15 +90,6 @@ jobs:
           docker build -t "$ECR_REGISTRY:$IMAGE_TAG" .
           docker push "$ECR_REGISTRY:$IMAGE_TAG"
 
-      - name: Update ECS Service
-        env:
-          AWS_REGION: us-east-1
-          CLUSTER_NAME: llm-cluster
-          SERVICE_NAME: llm-service
-          CONTAINER_NAME: fastapi-container
-          ECR_IMAGE: ${{ env.ECR_REGISTRY }}:latest
-        run: |
-          aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --force-new-deployment
 
 
 

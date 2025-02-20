@@ -1,70 +1,24 @@
-name: Terraform Apply, Build & Push to ECR, Deploy to ECS
-
-on:
-  push:
-    branches: [ main ]
+name: Example Workflow
+on: push
 
 jobs:
-  terraform-apply:
+  first_job:
     runs-on: ubuntu-latest
-
+    outputs:
+      ecr_url: ${{ steps.get-ecr-url.outputs.ecr_url }}  # Define job-level output
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Initialize Terraform
-        working-directory: ./terraform
-        run: terraform init
-
-      - name: Apply Terraform
-        working-directory: ./terraform
-        run: terraform apply -auto-approve
-
-      - name: Debug Terraform Output
-        working-directory: ./terraform
-        run: |
-          echo "🔍 Terraform Output:"
-          terraform output
-
       - name: Get ECR Repository URL
         id: get-ecr-url
-        working-directory: ./terraform
         run: |
-          echo "ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null | tr -d '[:space:]')" >> "$GITHUB_ENV"
+          echo "ecr_url=$(terraform output -raw ecr_repository_url 2>/dev/null | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
 
-  build-and-deploy:
+  second_job:
+    needs: first_job  # Depend on first_job
     runs-on: ubuntu-latest
-    needs: [terraform-apply]
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: Use ECR URL from First Job
+        run: echo "ECR URL is ${{ needs.first_job.outputs.ecr_url }}"
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Log in to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build, Tag, and Push Docker Image
-        run: |
-          docker build -t "$ECR_URL:latest" .
-          docker push "$ECR_URL:latest"
 
 
 

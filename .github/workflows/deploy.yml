@@ -8,7 +8,7 @@ jobs:
   terraform-apply:
     runs-on: ubuntu-latest
     outputs:
-      ecr_url: ${{ steps.get-ecr-url.outputs.ecr_url }}
+      ecr_url: ${{ steps.get-ecr-url.outputs.ecr_url }}  # ✅ Correctly defining job output
 
     steps:
       - name: Checkout Code
@@ -39,7 +39,7 @@ jobs:
           terraform output
 
       - name: Get ECR Repository URL
-        id: get-ecr-url
+        id: get-ecr-url  # ✅ Step ID that defines the output
         working-directory: ./terraform
         run: |
           ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null | tr -d '[:space:]')
@@ -50,8 +50,8 @@ jobs:
           fi
 
           echo "✅ Extracted ECR URL: $ECR_URL"
-
-          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT  # Correct way to set job output
+          
+          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT  # ✅ Correctly setting job output
 
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -93,6 +93,7 @@ jobs:
         run: |
           docker build -t "$ECR_REGISTRY:latest" .
           docker push "$ECR_REGISTRY:latest"
+
 
 
 

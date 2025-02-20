@@ -3,7 +3,10 @@ data "aws_ecr_repository" "existing_repository" {
 }
 
 resource "aws_ecr_repository" "llm_repository" {
-  count = length(data.aws_ecr_repository.existing_repository.id) > 0 ? 0 : 1
+  count = length(data.aws_ecr_repository.existing_repository.repository_url) > 0 ? 0 : 1
   name  = "data-science/llm-deployment"
 }
+
+
+
 

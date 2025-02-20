@@ -32,6 +32,10 @@ jobs:
         working-directory: ./terraform
         run: terraform apply -auto-approve
 
+      - name: Debug Terraform Output
+        working-directory: ./terraform
+        run: terraform output -raw ecr_repository_url || echo "⚠️ Terraform output is empty!"
+
       - name: Get ECR Repository URL
         id: get-ecr-url
         working-directory: ./terraform
@@ -64,12 +68,14 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
+      - name: Debug Passed ECR URL
+        run: echo "ECR_REGISTRY=${{ needs.terraform-apply.outputs.ecr_url }}"
+
       - name: Build, Tag, and Push Docker Image
         env:
           ECR_REGISTRY: ${{ needs.terraform-apply.outputs.ecr_url }}
           IMAGE_TAG: latest
         run: |
-          echo "ECR_REGISTRY=$ECR_REGISTRY"
           if [[ -z "$ECR_REGISTRY" ]]; then
             echo "❌ Error: ECR_REGISTRY is empty. Terraform might have failed."
             exit 1
@@ -86,6 +92,7 @@ jobs:
           ECR_IMAGE: ${{ needs.terraform-apply.outputs.ecr_url }}:latest
         run: |
           aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --force-new-deployment
+
 
 
 

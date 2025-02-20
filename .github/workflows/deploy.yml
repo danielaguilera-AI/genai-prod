@@ -7,8 +7,6 @@ on:
 jobs:
   terraform-apply:
     runs-on: ubuntu-latest
-    outputs:
-      ecr_url: ${{ steps.get-ecr-url.outputs.ecr_url }}  # ✅ Correct job output
 
     steps:
       - name: Checkout Code
@@ -42,7 +40,7 @@ jobs:
         id: get-ecr-url
         working-directory: ./terraform
         run: |
-          echo "ecr_url=$(terraform output -raw ecr_repository_url 2>/dev/null | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+          echo "ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null | tr -d '[:space:]')" >> "$GITHUB_ENV"
 
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -64,8 +62,6 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build, Tag, and Push Docker Image
-        env:
-          ECR_URL: ${{ needs.terraform-apply.outputs.ecr_url }}
         run: |
           docker build -t "$ECR_URL:latest" .
           docker push "$ECR_URL:latest"

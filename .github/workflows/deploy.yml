@@ -7,20 +7,22 @@ on:
 jobs:
   terraform-apply:
     runs-on: ubuntu-latest
+    outputs:
+      ecr_url: ${{ steps.get-ecr-url.outputs.ecr_url }}
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
+        uses: hashicorp/setup-terraform@v3
 
       - name: Initialize Terraform
         working-directory: ./terraform
@@ -43,13 +45,8 @@ jobs:
 
           echo "✅ Extracted ECR URL: $ECR_URL"
           
-          echo "$ECR_URL" > ecr_url.txt
-
-      - name: Save ECR URL Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: ecr-url
-          path: ecr_url.txt
+          echo "ecr_url=$ECR_URL" >> $GITHUB_ENV
+          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
 
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -57,39 +54,36 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Download ECR URL Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: ecr-url
-
-      - name: Read ECR URL
-        run: echo "ECR_REGISTRY=$(cat ecr_url.txt)" >> $GITHUB_ENV
+      - name: Set ECR Registry Variable
+        run: echo "ECR_REGISTRY=${{ env.ecr_url }}" >> $GITHUB_ENV
 
       - name: Log in to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Debug ECR URL
         run: |
-          echo "📌 Using ECR_REGISTRY: $ECR_REGISTRY"
+          echo "📌 Using ECR_REGISTRY: ${{ env.ecr_url }}"
           
-          if [[ -z "$ECR_REGISTRY" ]]; then
+          if [[ -z "${{ env.ecr_url }}" ]]; then
             echo "❌ ERROR: ECR_REGISTRY is empty! Terraform might have failed."
             exit 1
           fi
 
       - name: Build, Tag, and Push Docker Image
         run: |
-          docker build -t "$ECR_REGISTRY:latest" .
-          docker push "$ECR_REGISTRY:latest"
+          docker build -t "${{ env.ecr_url }}:latest" .
+          docker push "${{ env.ecr_url }}:latest"
+
+
 
 

@@ -88,6 +88,9 @@ jobs:
           echo "🚀 Building and pushing to: ${{ env.ECR_URL }}"
           docker build -t "${{ env.ECR_URL }}:latest" .
           docker push "${{ env.ECR_URL }}:latest"
-  
+
+      - name: Force ECS Service Update (Refresh Task)
+        run: |
+          aws ecs update-service --cluster llm-cluster --service llm-service --force-new-deployment
 
 

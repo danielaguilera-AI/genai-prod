@@ -23,10 +23,10 @@ RUN curl -sSL https://install.python-poetry.org | python3 - && \
 # Set working directory
 WORKDIR /app
 
-# Copy pyproject.toml and poetry.lock
-COPY pyproject.toml poetry.lock ./
+# Copy project metadata files BEFORE installing dependencies
+COPY pyproject.toml poetry.lock README.md ./
 
-# Install all dependencies (remove `--without dev`)
+# Install dependencies
 RUN poetry install && rm -rf $POETRY_CACHE_DIR
 
 # Copy application files
@@ -37,6 +37,7 @@ EXPOSE 8000
 
 # Start FastAPI using Uvicorn
 CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+
 
 
 

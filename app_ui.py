@@ -3,7 +3,7 @@ import subprocess
 from urllib.parse import quote  # Import the quote function for URL encoding
 
 # API endpoint
-API_URL = "https://5yyejnhh7h.execute-api.us-east-1.amazonaws.com/prod/generate"
+API_URL = "https://uo7cxq573c.execute-api.us-east-1.amazonaws.com/prod/generate"
 
 def chat_with_llm(user_input, history):
     # Construct the prompt by including the conversation history

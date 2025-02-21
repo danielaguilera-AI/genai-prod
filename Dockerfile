@@ -16,9 +16,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install the latest Poetry version
+# Install Poetry
 RUN curl -sSL https://install.python-poetry.org | python3 - && \
-    poetry --version  # Debug output
+    poetry --version  # Debug Poetry version
 
 # Set working directory
 WORKDIR /app
@@ -26,11 +26,8 @@ WORKDIR /app
 # Copy pyproject.toml and poetry.lock
 COPY pyproject.toml poetry.lock ./
 
-# Remove package-mode before installing dependencies (Optional)
-RUN sed -i '/package-mode/d' pyproject.toml
-
-# Install dependencies without creating a virtual environment
-RUN poetry install --no-dev --no-root && rm -rf $POETRY_CACHE_DIR
+# Install dependencies (without development dependencies)
+RUN poetry install --without dev && rm -rf $POETRY_CACHE_DIR
 
 # Copy application files
 COPY . .
@@ -40,5 +37,6 @@ EXPOSE 8000
 
 # Start FastAPI using Uvicorn
 CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+
 
 

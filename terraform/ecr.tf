@@ -1,4 +1,4 @@
-data "aws_ecr_repository" "llm_repository" {
+resource "aws_ecr_repository" "llm_repository" {
   name = "data-science/llm-deployment"
 }
 

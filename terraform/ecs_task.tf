@@ -10,7 +10,7 @@ resource "aws_ecs_task_definition" "llm_task" {
   container_definitions = jsonencode([
     {
       name      = "fastapi-container"
-      image = "${data.aws_ecr_repository.llm_repository.repository_url}:latest"
+      image = "${aws_ecr_repository.llm_repository.repository_url}:latest"
       cpu       = 512
       memory    = 1024
       essential = true

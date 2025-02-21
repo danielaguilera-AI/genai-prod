@@ -3,9 +3,19 @@ name: Terraform Apply, Build & Push to ECR, Deploy to ECS
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      terraform_action:
+        description: "Terraform action to run (apply/destroy)"
+        required: true
+        default: "apply"
+        type: choice
+        options:
+          - apply
+          - destroy
 
 jobs:
-  terraform-apply:
+  terraform:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,19 +36,19 @@ jobs:
         working-directory: ./terraform
         run: terraform init
 
-      - name: Apply Terraform
+      - name: Run Terraform Apply or Destroy
         working-directory: ./terraform
-        run: terraform apply -auto-approve
+        run: terraform ${{ github.event.inputs.terraform_action || 'apply' }} --auto-approve
 
-      - name: Debug Terraform Output
+      - name: Debug Terraform Output (if Apply)
+        if: github.event.inputs.terraform_action == 'apply' || github.event_name == 'push'
         working-directory: ./terraform
-        run: |
-          echo "🔍 Terraform Output:"
-          terraform output
+        run: terraform output
 
   build-and-deploy:
+    if: github.event.inputs.terraform_action == 'apply' || github.event_name == 'push'
     runs-on: ubuntu-latest
-    needs: [ terraform-apply ]
+    needs: [ terraform ]
 
     steps:
       - name: Checkout Code
@@ -51,7 +61,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Setup Terraform  # ✅ Install Terraform in this job
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
       - name: Initialize Terraform
@@ -63,11 +73,8 @@ jobs:
         working-directory: ./terraform
         run: |
           echo "🔍 Running Terraform Output Command..."
-          terraform output -raw ecr_repository_url || echo "⚠️ Terraform output command failed!"
-
-          ECR_URL=$(terraform output -raw ecr_repository_url)
-          echo "Extracted ECR URL: $ECR_URL"
-
+          ECR_URL=$(terraform output -raw ecr_repository_url || echo "")
+          
           if [[ -z "$ECR_URL" ]]; then
             echo "❌ ERROR: ECR_URL is empty! Terraform output might be incorrect."
             exit 1
@@ -92,5 +99,7 @@ jobs:
       - name: Force ECS Service Update (Refresh Task)
         run: |
           aws ecs update-service --cluster llm-cluster --service llm-service --force-new-deployment
+
+
 
 

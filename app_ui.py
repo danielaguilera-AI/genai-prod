@@ -7,7 +7,6 @@ API_URL = "https://5yyejnhh7h.execute-api.us-east-1.amazonaws.com/prod/generate"
 
 def chat_with_llm(user_input, history):
     # Construct the prompt by including the conversation history
-    print(history)
     prompt = ""
     for message in history[10:]:
         if message['role'] == 'user':
